@@ -15,4 +15,20 @@ impl CPU {
             program_counter: 0,
         }
     }
+
+    /**
+     * Interpret the program instructions.
+     */
+    pub fn interpret(&mut self, program: Vec<u8>) {
+        self.program_counter = 0;
+
+        loop {
+            let opcode = program[self.program_counter as usize];
+            self.program_counter += 1;
+
+            match opcode {
+                _ => todo!(),
+            }
+        }
+    }
 }
