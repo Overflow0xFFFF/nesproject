@@ -46,6 +46,11 @@ impl CPU {
                     self.tax();
                 }
 
+                // INX
+                0xE8 => {
+                    self.inx();
+                }
+
                 // BRK
                 0x00 => {
                     return;
@@ -53,6 +58,22 @@ impl CPU {
                 _ => todo!(),
             }
         }
+    }
+
+    /**
+     * 6502 Increment X Register
+     *
+     * Adds one to the X register setting the zero and negative flags as
+     * appropriate.
+     */
+    fn inx(&mut self) {
+        // Check for overflow
+        if self.register_x == u8::max_value() {
+            self.register_x = 0;
+        } else {
+            self.register_x += 1;
+        }
+        self.set_cpu_status_flags(self.register_x);
     }
 
     /**

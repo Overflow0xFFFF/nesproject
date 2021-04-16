@@ -26,3 +26,19 @@ fn test_0xaa_tax_move_a_to_x() {
     cpu.interpret(vec![0xAA, 0x00]);
     assert_eq!(cpu.register_x, 10);
 }
+
+#[test]
+fn test_0xe8_inx_increments_x() {
+    let mut cpu = CPU::new();
+    cpu.register_x = 10;
+    cpu.interpret(vec![0xE8, 0x00]);
+    assert_eq!(cpu.register_x, 11);
+}
+
+#[test]
+fn test_inx_overflow() {
+    let mut cpu = CPU::new();
+    cpu.register_x = 0xff;
+    cpu.interpret(vec![0xe8, 0xe8, 0x00]);
+    assert_eq!(cpu.register_x, 1)
+}
