@@ -6,11 +6,15 @@
 #[path = "cpu_test.rs"]
 mod cpu_test;
 
+const NES_MAX_MEMORY: usize = 0xFFFF; // 64 KiB
+const NES_ROM_PROGRAM_START: usize = 0x8000;
+
 pub struct CPU {
     pub register_a: u8,
     pub register_x: u8,
     pub status: u8,
     pub program_counter: u16,
+    memory: [u8; NES_MAX_MEMORY],
 }
 
 impl CPU {
@@ -20,23 +24,104 @@ impl CPU {
             register_x: 0,
             status: 0,
             program_counter: 0,
+            memory: [0; NES_MAX_MEMORY],
         }
     }
 
     /**
-     * Interpret the program instructions.
+     * Read a byte from memory.
+     *
+     * @param addr The address of memory from which to read.
      */
-    pub fn interpret(&mut self, program: Vec<u8>) {
-        self.program_counter = 0;
+    fn mem_read(&self, addr: u16) -> u8 {
+        self.memory[addr as usize]
+    }
 
+    /**
+     * Read a word from memory.
+     *
+     * This function reads data from memory packed in little-endian format.
+     *
+     * @param pos Position in memory from which to read.
+     * @return The word at that position.
+     */
+    fn mem_read_u16(&self, pos: u16) -> u16 {
+        let lower = self.mem_read(pos);
+        let upper = self.mem_read(pos + 1);
+        u16::from_le_bytes([lower, upper])
+    }
+
+    /**
+     * Write a byte to a location in memory.
+     *
+     * @param addr The address of memory to which to write.
+     * @param data The byte to write to the address.
+     */
+    fn mem_write(&mut self, addr: u16, data: u8) {
+        self.memory[addr as usize] = data;
+    }
+
+    /**
+     * Write a word to a location in memory.
+     *
+     * This function writes data to memory, packed in little-endian format.
+     *
+     * @param pos The position in memory to which to write.
+     * @param data The word to write to the address.
+     */
+    fn mem_write_u16(&mut self, pos: u16, data: u16) {
+        let bytes = data.to_le_bytes();
+        let lower = bytes[0];
+        let upper = bytes[1];
+        self.mem_write(pos, lower);
+        self.mem_write(pos + 1, upper);
+    }
+
+    /**
+     * Run the program on the CPU.
+     */
+    pub fn run(&mut self, program: Vec<u8>) {
+        self.load(program);
+        self.reset();
+        self.execute();
+    }
+
+    /**
+     * Load program into memory.
+     */
+    pub fn load(&mut self, program: Vec<u8>) {
+        let program_end = NES_ROM_PROGRAM_START + program.len();
+        self.memory[NES_ROM_PROGRAM_START..program_end].copy_from_slice(&program[..]);
+
+        self.mem_write_u16(0xFFFC, NES_ROM_PROGRAM_START as u16);
+        self.program_counter = NES_ROM_PROGRAM_START as u16;
+    }
+
+    /**
+     * Reset CPU registers and initialize program counter.
+     */
+    pub fn reset(&mut self) {
+        self.register_a = 0;
+        self.register_x = 0;
+        self.status = 0;
+        self.program_counter = self.mem_read_u16(0xFFFC);
+    }
+
+    /**
+     * Execute the program from system memory.
+     *
+     * Requires that a program has been `load()`ed and that the CPU has
+     * been `reset()` first.
+     */
+    pub fn execute(&mut self) {
         loop {
-            let opcode = program[self.program_counter as usize];
+            let opcode = self.mem_read(self.program_counter);
             self.program_counter += 1;
 
             match opcode {
                 // LDA <param>
                 0xA9 => {
-                    let param = program[self.program_counter as usize];
+                    let param = self.mem_read(self.program_counter);
                     self.program_counter += 1;
                     self.lda(param);
                 }
