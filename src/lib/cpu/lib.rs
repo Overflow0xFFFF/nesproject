@@ -1,6 +1,11 @@
 /**
  * Library for emulating a 6502 CPU.
  */
+
+#[cfg(test)]
+#[path = "cpu_test.rs"]
+mod cpu_test;
+
 pub struct CPU {
     pub register_a: u8,
     pub status: u8,
@@ -31,19 +36,7 @@ impl CPU {
                 0xA9 => {
                     let param = program[self.program_counter as usize];
                     self.program_counter += 1;
-                    self.register_a = param;
-
-                    if self.register_a == 0 {
-                        self.status = self.status | 0b0000_0010;
-                    } else {
-                        self.status = self.status & 0b1111_1101;
-                    }
-
-                    if self.register_a & 0b1000_0000 != 0 {
-                        self.status = self.status | 0b1000_0000;
-                    } else {
-                        self.status = self.status & 0b0111_1111;
-                    }
+                    self.lda(param);
                 }
                 // BRK
                 0x00 => {
@@ -53,25 +46,32 @@ impl CPU {
             }
         }
     }
-}
 
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_0xa9_lda_immediate_load_data() {
-        let mut cpu = CPU::new();
-        cpu.interpret(vec![0xA9, 0x05, 0x00]);
-        assert_eq!(cpu.register_a, 0x05);
-        assert!(cpu.status & 0b0000_0010 == 0b00);
-        assert!(cpu.status & 0b1000_0000 == 0);
+    /**
+     * 6502 Load Accumulator
+     *
+     * Load a byte of memory into the accumulator setting the zero and
+     * negative flags as appropriate.
+     */
+    fn lda(&mut self, value: u8) {
+        self.register_a = value;
+        self.set_cpu_status_flags(self.register_a);
     }
 
-    #[test]
-    fn test_0xa9_lda_zero_flag() {
-        let mut cpu = CPU::new();
-        cpu.interpret(vec![0xA9, 0x00, 0x00]);
-        assert!(cpu.status & 0b0000_0010 == 0b10);
+    /**
+     * Set the CPU status flags based on the value of the register passed.
+     */
+    fn set_cpu_status_flags(&mut self, result: u8) {
+        if result == 0 {
+            self.status = self.status | 0b0000_0010;
+        } else {
+            self.status = self.status & 0b1111_1101;
+        }
+
+        if result & 0b1000_0000 != 0 {
+            self.status = self.status | 0b1000_0000;
+        } else {
+            self.status = self.status & 0b0111_1111;
+        }
     }
 }
