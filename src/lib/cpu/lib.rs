@@ -8,6 +8,7 @@ mod cpu_test;
 
 pub struct CPU {
     pub register_a: u8,
+    pub register_x: u8,
     pub status: u8,
     pub program_counter: u16,
 }
@@ -16,6 +17,7 @@ impl CPU {
     pub fn new() -> Self {
         CPU {
             register_a: 0,
+            register_x: 0,
             status: 0,
             program_counter: 0,
         }
@@ -38,6 +40,12 @@ impl CPU {
                     self.program_counter += 1;
                     self.lda(param);
                 }
+
+                // TAX
+                0xAA => {
+                    self.tax();
+                }
+
                 // BRK
                 0x00 => {
                     return;
@@ -56,6 +64,17 @@ impl CPU {
     fn lda(&mut self, value: u8) {
         self.register_a = value;
         self.set_cpu_status_flags(self.register_a);
+    }
+
+    /**
+     * 6502 Transfer Accumulator to X
+     *
+     * Copies the current contents of the accumulator into the X register and
+     * sets the zero and negative flags as appropriate.
+     */
+    fn tax(&mut self) {
+        self.register_x = self.register_a;
+        self.set_cpu_status_flags(self.register_x);
     }
 
     /**
