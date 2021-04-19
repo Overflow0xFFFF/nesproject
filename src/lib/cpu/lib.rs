@@ -258,6 +258,36 @@ impl CPU {
                     self.program_counter += 1;
                 }
 
+                // STA
+                0x85 => {
+                    self.sta(&AddressingMode::ZeroPage);
+                    self.program_counter += 1;
+                }
+                0x95 => {
+                    self.sta(&AddressingMode::ZeroPageX);
+                    self.program_counter += 1;
+                }
+                0x8D => {
+                    self.sta(&AddressingMode::Absolute);
+                    self.program_counter += 2;
+                }
+                0x9D => {
+                    self.sta(&AddressingMode::AbsoluteX);
+                    self.program_counter += 2;
+                }
+                0x99 => {
+                    self.sta(&AddressingMode::AbsoluteY);
+                    self.program_counter += 2;
+                }
+                0x81 => {
+                    self.sta(&AddressingMode::IndirectX);
+                    self.program_counter += 1;
+                }
+                0x91 => {
+                    self.sta(&AddressingMode::IndirectY);
+                    self.program_counter += 1;
+                }
+
                 // TAX
                 0xAA => {
                     self.tax();
@@ -304,6 +334,16 @@ impl CPU {
         let value = self.mem_read(addr);
         self.register_a = value;
         self.set_cpu_status_flags(self.register_a);
+    }
+
+    /**
+     * 6502 Store Accumulator
+     *
+     * Stores the contents of the accumulator into memory.
+     */
+    fn sta(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        self.mem_write(addr, self.register_a)
     }
 
     /**
