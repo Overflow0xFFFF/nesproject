@@ -52,3 +52,11 @@ fn test_5_ops_working_together() {
     cpu.run(vec![0xA9, 0xC0, 0xAA, 0xE8, 0x00]);
     assert_eq!(cpu.register_x, 0xC1);
 }
+
+#[test]
+fn test_lda_from_memory() {
+    let mut cpu = CPU::new();
+    cpu.mem_write(0x10, 0x55);
+    cpu.run(vec![0xa5, 0x10, 0x00]);
+    assert_eq!(cpu.register_a, 0x55);
+}

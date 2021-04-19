@@ -12,9 +12,25 @@ const NES_ROM_PROGRAM_START: usize = 0x8000;
 pub struct CPU {
     pub register_a: u8,
     pub register_x: u8,
+    pub register_y: u8,
     pub status: u8,
     pub program_counter: u16,
     memory: [u8; NES_MAX_MEMORY],
+}
+
+#[derive(Debug)]
+pub enum AddressingMode {
+    Immediate,
+    ZeroPage,
+    ZeroPageX,
+    ZeroPageY,
+    Absolute,
+    AbsoluteX,
+    AbsoluteY,
+    Indirect,
+    IndirectX,
+    IndirectY,
+    NoneAddressing,
 }
 
 impl CPU {
@@ -22,6 +38,7 @@ impl CPU {
         CPU {
             register_a: 0,
             register_x: 0,
+            register_y: 0,
             status: 0,
             program_counter: 0,
             memory: [0; NES_MAX_MEMORY],
@@ -78,6 +95,94 @@ impl CPU {
     }
 
     /**
+     * Determine the memory address of the argument pointed to by the PRG CTR.
+     *
+     * @param mode The type of addressing mode to use.
+     * @return The memory address from which we can locate a value.
+     */
+    fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
+        match mode {
+            // Immediate addressing does not rely on a memory address and loads
+            // the value into the register immediately. When a program is
+            // running, the immediate value to load is that which is pointed at
+            // by the program counter in memory.
+            AddressingMode::Immediate => self.program_counter,
+
+            // Absolute addressing uses the full memory location to locate
+            // a value.
+            AddressingMode::Absolute => self.mem_read_u16(self.program_counter),
+
+            // Like Absolute addressing, but the value of Register X is added
+            // to determine the final address.
+            AddressingMode::AbsoluteX => {
+                let pos = self.mem_read_u16(self.program_counter);
+                let addr = pos.wrapping_add(self.register_x as u16);
+                addr
+            }
+
+            // Like Absolute addressing, but the value of Register Y is added
+            // to determine the final address.
+            AddressingMode::AbsoluteY => {
+                let pos = self.mem_read_u16(self.program_counter);
+                let addr = pos.wrapping_add(self.register_y as u16);
+                addr
+            }
+
+            // Zero Page addressing only reads from the first page of memory.
+            // Think: Zero-indexing. This means the address we need to read
+            // is at 0x00nn. Functions the same as Absolute addressing.
+            AddressingMode::ZeroPage => self.mem_read(self.program_counter) as u16,
+
+            // Like Zero Page addressing, but the value of Register X is added
+            // to determine the final address.
+            AddressingMode::ZeroPageX => {
+                let pos = self.mem_read(self.program_counter);
+                let addr = pos.wrapping_add(self.register_x) as u16;
+                addr
+            }
+
+            // Like Zero Page addressing, but the value of Register Y is added
+            // to determine the final address.
+            AddressingMode::ZeroPageY => {
+                let pos = self.mem_read(self.program_counter);
+                let addr = pos.wrapping_add(self.register_y) as u16;
+                addr
+            }
+
+            // With Indirect addressing, the memory address that the PRG CTR
+            // points to is itself pointing at another memory address. To
+            // determine the final address, we dereference twice.
+            AddressingMode::Indirect => {
+                let pos = self.mem_read_u16(self.program_counter);
+                let addr = self.mem_read_u16(pos);
+                addr
+            }
+
+            // Indexed Indirect X addressing functions like a cross between
+            // Zero Page X and Indirect. The memory address pointed at by
+            // what's held at the Zero Page + Register X address is our final
+            // address.
+            AddressingMode::IndirectX => {
+                let pos = self.mem_read(self.program_counter);
+                let ptr = pos.wrapping_add(self.register_x) as u16;
+                let addr = self.mem_read_u16(ptr);
+                addr
+            }
+
+            // Same as Indexed Indirect X, but with Register Y.
+            AddressingMode::IndirectY => {
+                let pos = self.mem_read(self.program_counter);
+                let ptr = pos.wrapping_add(self.register_y) as u16;
+                let addr = self.mem_read_u16(ptr);
+                addr
+            }
+
+            // If nothing matches, panic.
+            AddressingMode::NoneAddressing => panic!("mode {:?} is not supported", mode),
+        }
+    }
+
+    /**
      * Run the program on the CPU.
      */
     pub fn run(&mut self, program: Vec<u8>) {
@@ -121,9 +226,36 @@ impl CPU {
             match opcode {
                 // LDA <param>
                 0xA9 => {
-                    let param = self.mem_read(self.program_counter);
+                    self.lda(&AddressingMode::Immediate);
                     self.program_counter += 1;
-                    self.lda(param);
+                }
+                0xA5 => {
+                    self.lda(&AddressingMode::ZeroPage);
+                    self.program_counter += 1;
+                }
+                0xB5 => {
+                    self.lda(&AddressingMode::ZeroPageX);
+                    self.program_counter += 1;
+                }
+                0xAD => {
+                    self.lda(&AddressingMode::Absolute);
+                    self.program_counter += 2;
+                }
+                0xBD => {
+                    self.lda(&AddressingMode::AbsoluteX);
+                    self.program_counter += 2;
+                }
+                0xB9 => {
+                    self.lda(&AddressingMode::AbsoluteY);
+                    self.program_counter += 2;
+                }
+                0xA1 => {
+                    self.lda(&AddressingMode::IndirectX);
+                    self.program_counter += 1;
+                }
+                0xB1 => {
+                    self.lda(&AddressingMode::IndirectY);
+                    self.program_counter += 1;
                 }
 
                 // TAX
@@ -167,7 +299,9 @@ impl CPU {
      * Load a byte of memory into the accumulator setting the zero and
      * negative flags as appropriate.
      */
-    fn lda(&mut self, value: u8) {
+    fn lda(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
         self.register_a = value;
         self.set_cpu_status_flags(self.register_a);
     }
