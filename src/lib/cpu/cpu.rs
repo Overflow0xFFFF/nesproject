@@ -6,6 +6,9 @@
 #[path = "cpu_test.rs"]
 mod cpu_test;
 
+use crate::opcodes;
+use std::collections::HashMap;
+
 const NES_MAX_MEMORY: usize = 0xFFFF; // 64 KiB
 const NES_ROM_PROGRAM_START: usize = 0x8000;
 
@@ -219,91 +222,37 @@ impl CPU {
      * been `reset()` first.
      */
     pub fn execute(&mut self) {
+        let ref opcodes: HashMap<u8, &'static opcodes::OpCode> = *opcodes::CPU_OPCODES_MAP;
+
         loop {
             let opcode = self.mem_read(self.program_counter);
             self.program_counter += 1;
 
+            let info = opcodes
+                .get(&opcode)
+                .expect(&format!("Unrecognized opcode: {:x}", opcode));
+
+            // TODO: Use opcode info to manipulate program counter and
+            //       determine addressing mode
             match opcode {
-                // LDA <param>
-                0xA9 => {
-                    self.lda(&AddressingMode::Immediate);
-                    self.program_counter += 1;
-                }
-                0xA5 => {
-                    self.lda(&AddressingMode::ZeroPage);
-                    self.program_counter += 1;
-                }
-                0xB5 => {
-                    self.lda(&AddressingMode::ZeroPageX);
-                    self.program_counter += 1;
-                }
-                0xAD => {
-                    self.lda(&AddressingMode::Absolute);
-                    self.program_counter += 2;
-                }
-                0xBD => {
-                    self.lda(&AddressingMode::AbsoluteX);
-                    self.program_counter += 2;
-                }
-                0xB9 => {
-                    self.lda(&AddressingMode::AbsoluteY);
-                    self.program_counter += 2;
-                }
-                0xA1 => {
-                    self.lda(&AddressingMode::IndirectX);
-                    self.program_counter += 1;
-                }
-                0xB1 => {
-                    self.lda(&AddressingMode::IndirectY);
-                    self.program_counter += 1;
+                0xE8 => self.inx(),
+
+                0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
+                    self.lda(&info.mode);
                 }
 
-                // STA
-                0x85 => {
-                    self.sta(&AddressingMode::ZeroPage);
-                    self.program_counter += 1;
-                }
-                0x95 => {
-                    self.sta(&AddressingMode::ZeroPageX);
-                    self.program_counter += 1;
-                }
-                0x8D => {
-                    self.sta(&AddressingMode::Absolute);
-                    self.program_counter += 2;
-                }
-                0x9D => {
-                    self.sta(&AddressingMode::AbsoluteX);
-                    self.program_counter += 2;
-                }
-                0x99 => {
-                    self.sta(&AddressingMode::AbsoluteY);
-                    self.program_counter += 2;
-                }
-                0x81 => {
-                    self.sta(&AddressingMode::IndirectX);
-                    self.program_counter += 1;
-                }
-                0x91 => {
-                    self.sta(&AddressingMode::IndirectY);
-                    self.program_counter += 1;
+                0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
+                    self.sta(&info.mode);
                 }
 
-                // TAX
-                0xAA => {
-                    self.tax();
-                }
-
-                // INX
-                0xE8 => {
-                    self.inx();
-                }
+                0xAA => self.tax(),
 
                 // BRK
-                0x00 => {
-                    return;
-                }
+                0x00 => return,
                 _ => todo!(),
             }
+
+            self.program_counter += (info.length - 1) as u16;
         }
     }
 
