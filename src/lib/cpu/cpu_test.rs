@@ -36,6 +36,22 @@ fn test_0xa2_ldx_zero_flag() {
 }
 
 #[test]
+fn test_0xa0_ldy_immediate_load_data() {
+    let mut cpu = CPU::new();
+    cpu.run(vec![0xA0, 0x05, 0x00]);
+    assert_eq!(cpu.register_y, 0x05);
+    assert!(cpu.status & STATUS_ZERO == 0b00);
+    assert!(cpu.status & STATUS_NEGATIVE == 0);
+}
+
+#[test]
+fn test_0xa0_ldx_zero_flag() {
+    let mut cpu = CPU::new();
+    cpu.run(vec![0xA0, 0x00, 0x00]);
+    assert!(cpu.status & STATUS_ZERO == 0b10);
+}
+
+#[test]
 fn test_0xaa_tax_move_a_to_x() {
     let mut cpu = CPU::new();
     cpu.register_a = 10;

@@ -253,6 +253,10 @@ impl CPU {
                     self.ldx(&info.mode);
                 }
 
+                0xA0 | 0xA4 | 0xB4 | 0xAC | 0xBC => {
+                    self.ldy(&info.mode);
+                }
+
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&info.mode);
                 }
@@ -308,6 +312,19 @@ impl CPU {
         let value = self.mem_read(addr);
         self.register_x = value;
         self.set_cpu_status_flags(self.register_x);
+    }
+
+    /**
+     * 6502 Load Y Register
+     *
+     * Load a byte of memory into the Y register setting the zero and
+     * negative flags as appropriate.
+     */
+    fn ldy(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.register_y = value;
+        self.set_cpu_status_flags(self.register_y);
     }
 
     /**
