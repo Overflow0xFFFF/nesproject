@@ -232,13 +232,15 @@ impl CPU {
                 .get(&opcode)
                 .expect(&format!("Unrecognized opcode: {:x}", opcode));
 
-            // TODO: Use opcode info to manipulate program counter and
-            //       determine addressing mode
             match opcode {
                 0xE8 => self.inx(),
 
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&info.mode);
+                }
+
+                0xA2 | 0xA6 | 0xB6 | 0xAE | 0xBE => {
+                    self.ldx(&info.mode);
                 }
 
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
@@ -283,6 +285,19 @@ impl CPU {
         let value = self.mem_read(addr);
         self.register_a = value;
         self.set_cpu_status_flags(self.register_a);
+    }
+
+    /**
+     * 6502 Load X Register
+     *
+     * Load a byte of memory into the X register setting the zero and
+     * negative flags as appropriate.
+     */
+    fn ldx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.register_x = value;
+        self.set_cpu_status_flags(self.register_x);
     }
 
     /**
