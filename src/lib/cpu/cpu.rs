@@ -22,15 +22,6 @@ const STATUS_BREAK: u8 = 0b0001_0000;
 const STATUS_OVERFLOW: u8 = 0b0100_0000;
 const STATUS_NEGATIVE: u8 = 0b1000_0000;
 
-pub struct CPU {
-    pub register_a: u8,
-    pub register_x: u8,
-    pub register_y: u8,
-    pub status: u8,
-    pub program_counter: u16,
-    memory: [u8; NES_MAX_MEMORY],
-}
-
 #[derive(Debug)]
 pub enum AddressingMode {
     Immediate,
@@ -44,6 +35,15 @@ pub enum AddressingMode {
     IndirectX,
     IndirectY,
     NoneAddressing,
+}
+
+pub struct CPU {
+    pub register_a: u8,
+    pub register_x: u8,
+    pub register_y: u8,
+    pub status: u8,
+    pub program_counter: u16,
+    memory: [u8; NES_MAX_MEMORY],
 }
 
 impl CPU {
