@@ -12,6 +12,16 @@ use std::collections::HashMap;
 const NES_MAX_MEMORY: usize = 0xFFFF; // 64 KiB
 const NES_ROM_PROGRAM_START: usize = 0x8000;
 
+// Status flags for the CPU Processor Status register.
+const STATUS_CARRY: u8 = 0b0000_0001;
+const STATUS_ZERO: u8 = 0b0000_0010;
+const STATUS_INTERRUPT_DISABLE: u8 = 0b0000_0100;
+const STATUS_DECIMAL_MODE: u8 = 0b0000_1000;
+const STATUS_BREAK: u8 = 0b0001_0000;
+// No status flag set here
+const STATUS_OVERFLOW: u8 = 0b0100_0000;
+const STATUS_NEGATIVE: u8 = 0b1000_0000;
+
 pub struct CPU {
     pub register_a: u8,
     pub register_x: u8,
@@ -326,15 +336,15 @@ impl CPU {
      */
     fn set_cpu_status_flags(&mut self, result: u8) {
         if result == 0 {
-            self.status = self.status | 0b0000_0010;
+            self.status = self.status | STATUS_ZERO;
         } else {
-            self.status = self.status & 0b1111_1101;
+            self.status = self.status & !STATUS_ZERO;
         }
 
         if result & 0b1000_0000 != 0 {
-            self.status = self.status | 0b1000_0000;
+            self.status = self.status | STATUS_NEGATIVE;
         } else {
-            self.status = self.status & 0b0111_1111;
+            self.status = self.status & !STATUS_NEGATIVE;
         }
     }
 }
