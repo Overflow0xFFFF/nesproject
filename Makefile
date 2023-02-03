@@ -46,7 +46,7 @@ SHELL := bash
 TARGET ?= release
 
 BINDIR       := $(CURDIR)/target/$(TARGET)
-BINNAME      := semver-rs
+BINNAME      := nesemu
 INSTALL_PATH ?= /usr/local/bin
 
 DATE       = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
