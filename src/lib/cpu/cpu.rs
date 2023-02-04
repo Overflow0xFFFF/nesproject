@@ -24,6 +24,7 @@ const STATUS_NEGATIVE: u8 = 0b1000_0000;
 
 #[derive(Debug)]
 pub enum AddressingMode {
+    Accumulator,
     Immediate,
     ZeroPage,
     ZeroPageX,
@@ -188,6 +189,11 @@ impl CPU {
                 let ptr = pos.wrapping_add(self.register_y) as u16;
                 let addr = self.mem_read_u16(ptr);
                 addr
+            }
+
+            // Operand is the accumulator itself.
+            AddressingMode::Accumulator => {
+                panic!("mode {:?} does not return a memory address", mode)
             }
 
             // If nothing matches, panic.
