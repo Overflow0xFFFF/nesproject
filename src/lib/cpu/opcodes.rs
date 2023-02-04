@@ -21,11 +21,11 @@ impl OpCode {
         mode: AddressingMode,
     ) -> Self {
         OpCode {
-            code: code,
-            instruction: instruction,
-            length: length,
-            cycles: cycles,
-            mode: mode,
+            code,
+            instruction,
+            length,
+            cycles,
+            mode,
         }
     }
 }
@@ -33,6 +33,15 @@ impl OpCode {
 lazy_static! {
     pub static ref CPU_OPCODES: Vec<OpCode> = vec![
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
+
+        OpCode::new(0x69, "ADC", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0x65, "ADC", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x75, "ADC", 2, 4, AddressingMode::ZeroPageX),
+        OpCode::new(0x6D, "ADC", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0x7D, "ADC", 3, 4 /* (+1 if page crossed) */, AddressingMode::AbsoluteX),
+        OpCode::new(0x79, "ADC", 3, 4 /* (+1 if page crossed) */, AddressingMode::AbsoluteY),
+        OpCode::new(0x61, "ADC", 2, 6, AddressingMode::IndirectX),
+        OpCode::new(0x71, "ADC", 2, 5 /* (+1 if page crossed) */, AddressingMode::IndirectY),
 
         OpCode::new(0xE8, "INX", 1, 7, AddressingMode::NoneAddressing),
 
